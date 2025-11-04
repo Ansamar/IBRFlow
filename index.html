@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radio Scampia - App Produzione</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<header>
+  <div class="header-container">
+    <a href="#production" class="logo">
+      <img src="Images/logo-ibr-png.png" alt="Logo Radio Scampia" />
+      <span class="header-title">IBR Radio Flow</span>
+    </a>
+    <nav>
+      <ul class="navbar">
+        <li><a href="#production">Produzione</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#report">Report</a></li>
+        <li><a href="#contenuti">Contenuti</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="app-content" role="main" aria-live="polite"></main>
+<footer>
+  <p>© 2025 IBR Radio Scampia - Tutti i diritti riservati</p>
+  <p>Contatti: <a href="mailto:info@ibr.it">info@ibr.it</a> | Tel. +39 0123456789</p>
+</footer>
+<script>
+// === ROUTING E NAVIGAZIONE ===
+document.addEventListener('DOMContentLoaded', function() {
+  // Gestione navigazione
+  document.querySelectorAll('.navbar a').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = this.getAttribute('href').substring(1);
+      navigateTo(target);
+    });
+  });
+
+  // Navigazione iniziale
+  const hash = window.location.hash.substring(1) || 'production';
+  navigateTo(hash);
+});
+
+function navigateTo(view) {
+  window.location.hash = view;
+  
+  switch(view) {
+    case 'production':
+      initProductionView();
+      break;
+    case 'dashboard':
+      initDashboardView();
+      break;
+    case 'report':
+      initReportView();
+      break;
+    case 'contenuti':
+      initContenutiView();
+      break;
+    default:
+      initProductionView();
+  }
+}
+
+// === PRODUZIONE VIEW ===
+function initProductionView() {
+  const content = document.getElementById('app-content');
+  content.innerHTML = `
+    <h1>Editor Metadati Radio</h1>
+    <div id="id3Text" class="id3-text">
+      Nessun file selezionato
+    </div>
+    <div class="production-container">
+      <form id="metaForm" class="meta-form">
+        <label class="file-input-label">
+          Seleziona File MP3
+          <input type="file" id="audiofile" accept=".mp3" class="file-input" />
+        </label>
+        <div id="fileName" class="file-name-display"></div>
+        
+        <div class="form-group">
+          <label class="unlock-label">
+            Titolo Programma
+            <button type="button" id="unlockTitle" class="unlock-btn">Sblocca</button>
+          </label>
+          <input type="text" id="titolo_programma" readonly class="form-input locked" />
+        </div>
+        
+        <div class="form-group">
+          <label>Tema</label>
+          <input type="text" id="tema" class="form-input" />
+        </div>
+        
+        <div class="form-group full-width">
+          <label>Priorità</label>
+          <div id="priorita" class="priority-group">
+            <label><input type="radio" name="priorita" value="A" /> Alta</label>
+            <label><input type="radio" name="priorita" value="B" /> Media</label>
+            <label><input type="radio" name="priorita" value="C" /> Bassa</label>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="unlock-label">
+            Durata Programmata
+            <button type="button" id="unlockDurata" class="unlock-btn">Sblocca</button>
+          </label>
+          <input type="text" id="durata_prevista" readonly class="form-input locked" />
+        </div>
+        
+        <div class="form-group duration-real">
+          <span>Durata reale:</span>
+          <span id="durataReale">-</span>
+        </div>
+        
+        <div class="form-group">
+          <label class="unlock-label">
+            Tolleranza
+            <button type="button" id="unlockTolleranza" class="unlock-btn">Sblocca</button>
+          </label>
+          <input type="text" id="tolleranza" readonly value="00:00:500" class="form-input locked" />
+        </div>
+        
+        <div class="form-group">
+          <label>Data Registrazione</label>
+          <input type="date" id="data_registrazione" required class="form-input" />
+        </div>
+        
+        <div class="form-group">
+          <label>Conduttori (separati da ;)</label>
+          <input type="text" id="conduttore" placeholder="Mario Rossi; Anna Bianchi" class="form-input" />
+        </div>
+        
+        <div class="form-group">
+          <label>Intervistati (separati da ;)</label>
+          <input type="text" id="intervistato" placeholder="Sig. Claudio" class="form-input" />
+        </div>
+        
+        <div class="form-group">
+          <label>Partecipanti (separati da ;)</label>
+          <input type="text" id="partecipante" class="form-input" />
+        </div>
+        
+        <div class="form-group">
+          <label>Stato File</label>
+          <select id="stato_file" class="form-input">
+            <option value="produzione">Produzione</option>
+            <option value="post-produzione">Post-Produzione</option>
+            <option value="montaggio">Montaggio</option>
+            <option value="diffusione">Diffusione</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Operatore/Tecnico</label>
+          <input type="text" id="operatore" class="form-input" />
+        </div>
+        
+        <div class="form-group full-width">
+          <label>Note</label>
+          <textarea id="note" rows="3" class="form-textarea"></textarea>
+        </div>
+        
+        <div class="form-group full-width">
+          <label>Nome File Protocollo</label>
+          <input type="text" id="nome_file_protocollo" readonly class="form-input locked" />
+        </div>
+        
+        <div class="form-actions full-width">
+          <button type="button" id="salvaBtn" class="btn-primary">
+            Genera Protocollo
+          </button>
+          <button type="button" id="downloadBtn" class="btn-success" style="display:none;">
+            Scarica MP3 Originale
+          </button>
+        </div>
+        
+        <div id="status" class="status-message"></div>
+      </form>
+    </div>
+  `;
+
+  setupProductionEvents();
+}
+
+function setupProductionEvents() {
+  const fileInput = document.getElementById('audiofile');
+  const id3TextDiv = document.getElementById('id3Text');
+  const statusDiv = document.getElementById('status');
+
+  fileInput.addEventListener('change', handleFileSelect);
+  
+  document.getElementById('salvaBtn').addEventListener('click', handleSaveProtocol);
+  document.getElementById('downloadBtn').addEventListener('click', handleDownload);
+  
+  document.getElementById('unlockTitle').addEventListener('click', () => 
+    toggleLock('titolo_programma', 'unlockTitle'));
+  document.getElementById('unlockDurata').addEventListener('click', () => 
+    toggleLock('durata_prevista', 'unlockDurata'));
+  document.getElementById('unlockTolleranza').addEventListener('click', () => 
+    toggleLock('tolleranza', 'unlockTolleranza'));
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  const id3TextDiv = document.getElementById('id3Text');
+  
+  if (!file) {
+    id3TextDiv.textContent = 'Nessun file selezionato.';
+    document.getElementById('durataReale').textContent = '-';
+    return;
+  }
+  
+  id3TextDiv.textContent = 'Lettura tag ID3 in corso…';
+  readID3Tags(file);
+  updateFileInfo(file);
+  calculateDuration(file);
+}
+
+function readID3Tags(file) {
+  const id3TextDiv = document.getElementById('id3Text');
+  
+  jsmediatags.read(file, {
+    onSuccess: function(tag) {
+      const tags = tag.tags;
+      let displayText = '';
+      for (const [key, value] of Object.entries(tags)) {
+        if(typeof value === 'object' && value !== null){
+          displayText += `${key}: ${JSON.stringify(value)}\n`;
+        } else {
+          displayText += `${key}: ${value}\n`;
+        }
+      }
+      id3TextDiv.textContent = displayText || 'Nessun tag ID3 trovato.';
+    },
+    onError: function(error) {
+      id3TextDiv.textContent = 'Errore lettura tag ID3: ' + error.type;
+    }
+  });
+}
+
+function updateFileInfo(file) {
+  document.getElementById('titolo_programma').value = file.name.replace(/\.[^/.]+$/, '');
+  document.getElementById('fileName').textContent = 
+    `Selezionato: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+}
+
+function calculateDuration(file) {
+  const audio = new Audio();
+  audio.src = URL.createObjectURL(file);
+  audio.preload = 'metadata';
+  
+  audio.onloadedmetadata = () => {
+    const m = Math.floor(audio.duration / 60).toString().padStart(2, '0');
+    const s = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+    const ms = Math.floor((audio.duration % 1) * 1000).toString().padStart(3, '0');
+    const dur = `${m}:${s}:${ms}`;
+    
+    document.getElementById('durataReale').textContent = dur;
+    const duraPrevInput = document.getElementById('durata_prevista');
+    if (!duraPrevInput.value) duraPrevInput.value = dur;
+  };
+}
+
+function handleSaveProtocol() {
+  if (!validateForm()) return;
+  
+  const titolo = document.getElementById('titolo_programma').value;
+  const priorita = document.querySelector('input[name="priorita"]:checked').value;
+  const protocollo = generaNomeProtocollo(titolo, priorita);
+  
+  document.getElementById('nome_file_protocollo').value = protocollo;
+  document.getElementById('downloadBtn').style.display = 'inline-block';
+  document.getElementById('status').textContent = 'Protocollo generato. Ora puoi scaricare il file MP3.';
+}
+
+function validateForm() {
+  const requiredFields = ['titolo_programma', 'tema', 'data_registrazione'];
+  let prioritaSelected = false;
+  
+  document.querySelectorAll('input[name="priorita"]').forEach(radio => {
+    if(radio.checked) prioritaSelected = true;
+  });
+  
+  if(!prioritaSelected){
+    alert('Seleziona una priorità!');
+    return false;
+  }
+  
+  for(const field of requiredFields){
+    if(!document.getElementById(field).value.trim()){
+      alert('Compila tutti i campi obbligatori!');
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+function handleDownload() {
+  const fileInputElem = document.getElementById('audiofile');
+  if(!fileInputElem.files.length){
+    alert('Nessun file selezionato da scaricare!');
+    return;
+  }
+  
+  const file = fileInputElem.files[0];
+  const protocollo = document.getElementById('nome_file_protocollo').value || 'file_audio';
+  const nomeFileDownload = `${protocollo}_originale.mp3`;
+
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeFileDownload;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  document.getElementById('status').textContent = `File scaricato come: ${nomeFileDownload}`;
+}
+
+function generaNomeProtocollo(titolo, priorita) {
+  const now = new Date();
+  const data = now.toISOString().slice(0,10).replace(/-/g,'');
+  const ora = now.toTimeString().slice(0,8).replace(/:/g,'');
+  const cleanTitolo = titolo.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20);
+  return `${data}_${ora}_${priorita}_${cleanTitolo}`;
+}
+
+function toggleLock(fieldId, buttonId) {
+  const field = document.getElementById(fieldId);
+  const button = document.getElementById(buttonId);
+  
+  if(field.hasAttribute('readonly')){
+    field.removeAttribute('readonly');
+    field.classList.remove('locked');
+    button.textContent = 'Blocca';
+    button.style.color = '#e17055';
+  } else {
+    field.setAttribute('readonly','readonly');
+    field.classList.add('locked');
+    button.textContent = 'Sblocca';
+    button.style.color = '#3498db';
+  }
+}
+
+// === DASHBOARD VIEW ===
+function initDashboardView() {
+  const content = document.getElementById('app-content');
+  content.innerHTML = `
+    <div class="dashboard-container">
+      <h2>Grafico Stato File</h2>
+      <canvas id="dashboardChart" width="700" height="300"></canvas>
+    </div>
+  `;
+  
+  renderDashboardChart();
+}
+
+function renderDashboardChart() {
+  const ctx = document.getElementById('dashboardChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Produzione', 'Post-produzione', 'Completati', 'Priorità Alta'],
+      datasets: [{
+        label: 'Numero file',
+        data: [12, 5, 20, 3],
+        backgroundColor: [
+          'rgba(54, 162, 235, 0.7)',
+          'rgba(255, 206, 86, 0.7)',
+          'rgba(75, 192, 192, 0.7)',
+          'rgba(255, 99, 132, 0.7)'
+        ],
+        borderColor: [
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(255, 99, 132, 1)'
+        ],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      scales: { 
+        y: { beginAtZero: true },
+        x: {}
+      }
+    }
+  });
+}
+
+// === REPORT VIEW ===
+function initReportView() {
+  const content = document.getElementById('app-content');
+  content.innerHTML = `
+    <div class="report-container">
+      <h1>Report</h1>
+      <p>Visualizzazione rapporti avanzati</p>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Stato</th>
+            <th>Priorità</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ripresa01.mp3</td>
+            <td>Produzione</td>
+            <td>Alta</td>
+            <td>2025-10-31</td>
+          </tr>
+          <tr>
+            <td>montaggio05.mp3</td>
+            <td>Post-Produzione</td>
+            <td>Media</td>
+            <td>2025-10-29</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// === CONTENUTI VIEW ===
+function initContenutiView() {
+  const content = document.getElementById('app-content');
+  content.innerHTML = `
+    <div class="contenuti-container">
+      <h1>Gestione Contenuti Server</h1>
+      <div class="server-status">
+        <div>
+          <h3>Stato Server: <span style="color: #27ae60;">Online</span></h3>
+          <p class="last-updated">Ultimo aggiornamento: ${new Date().toLocaleString()}</p>
+        </div>
+        <button class="btn-refresh-all" onclick="refreshAllFolders()">
+          🔄 Aggiorna Tutto
+        </button>
+      </div>
+      
+      <div class="folders-grid">
+        <!-- RAW - File Grezzi -->
+        <div class="folder-card">
+          <div class="folder-header">
+            <h3>🎬 RAW - File Grezzi</h3>
+            <button class="btn-refresh-section" onclick="refreshFolder('raw')">
+              Aggiorna
+            </button>
+          </div>
+          <div id="raw-files" class="file-list">
+            <div class="loading">Caricamento file...</div>
+          </div>
+        </div>
+        
+        <!-- PROCESSING - In Lavorazione -->
+        <div class="folder-card">
+          <div class="folder-header">
+            <h3>⚙️ PROCESSING - In Lavorazione</h3>
+            <button class="btn-refresh-section" onclick="refreshFolder('processing')">
+              Aggiorna
+            </button>
+          </div>
+          <div id="processing-files" class="file-list">
+            <div class="loading">Caricamento file...</div>
+          </div>
+        </div>
+        
+        <!-- COMPLETED - Completati -->
+        <div class="folder-card">
+          <div class="folder-header">
+            <h3>✅ COMPLETED - Pronti per la Diffusione</h3>
+            <button class="btn-refresh-section" onclick="refreshFolder('completed')">
+              Aggiorna
+            </button>
+          </div>
+          <div id="completed-files" class="file-list">
+            <div class="loading">Caricamento file...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="audioPlayer" class="audio-player-fixed">
+      <audio id="globalAudioPlayer" controls></audio>
+      <button class="btn-close-audio" onclick="closeAudioPlayer()">✕</button>
+    </div>
+  `;
+  
+  refreshAllFolders();
+}
+
+function refreshAllFolders() {
+  const folders = ['raw', 'processing', 'completed'];
+  folders.forEach(folder => refreshFolder(folder));
+}
+
+function refreshFolder(folderName) {
+  const fileList = document.getElementById(`${folderName}-files`);
+  fileList.innerHTML = '<div class="loading">Caricamento file...</div>';
+  
+  // Simula caricamento
+  setTimeout(() => {
+    const mockFiles = generateMockFiles(folderName);
+    renderFileList(fileList, mockFiles, folderName);
+  }, 1000);
+}
+
+function generateMockFiles(folderName) {
+  // File diversi per ogni cartella per simulare uno workflow reale
+  switch(folderName) {
+    case 'raw':
+      return [
+        { name: `registrazione_live_${getRandomDate()}.mp3`, size: '45.2 MB' },
+        { name: `intervista_studio_${getRandomDate()}.wav`, size: '128.7 MB' },
+        { name: `evento_esterno_${getRandomDate()}.mp3`, size: '67.3 MB' },
+        { name: `backup_${getRandomDate()}.wav`, size: '89.1 MB' }
+      ];
+      
+    case 'processing':
+      return [
+        { name: `montaggio_in_corso_${getRandomDate()}.mp3`, size: '32.8 MB' },
+        { name: `editing_audio_${getRandomDate()}.wav`, size: '76.5 MB' },
+        { name: `mixaggio_${getRandomDate()}.mp3`, size: '41.2 MB' }
+      ];
+      
+    case 'completed':
+      return [
+        { name: `programma_finale_${getRandomDate()}.mp3`, size: '28.9 MB' },
+        { name: `podcast_completo_${getRandomDate()}.mp3`, size: '35.4 MB' },
+        { name: `trasmissione_ready_${getRandomDate()}.mp3`, size: '31.7 MB' },
+        { name: `archivio_${getRandomDate()}.mp3`, size: '29.8 MB' }
+      ];
+      
+    default:
+      return [];
+  }
+}
+
+function getRandomDate() {
+  const dates = ['2025-01-15', '2025-01-16', '2025-01-17', '2025-01-18', '2025-01-19'];
+  return dates[Math.floor(Math.random() * dates.length)];
+}
+
+function renderFileList(container, files, folderName) {
+  if (files.length === 0) {
+    container.innerHTML = '<div class="no-files">Nessun file presente</div>';
+    return;
+  }
+  
+  container.innerHTML = files.map(file => `
+    <div class="file-item">
+      <input type="checkbox" class="file-checkbox">
+      <div class="file-info">
+        <div class="file-name">${file.name}</div>
+        <div class="file-size">${file.size}</div>
+      </div>
+      <div class="file-actions">
+        <button class="btn-audio" onclick="playAudio('${file.name}', '${folderName}')">
+          ▶️ Ascolta
+        </button>
+        <button class="btn-edit" onclick="editFile('${file.name}', '${folderName}')">
+          ✏️ Modifica
+        </button>
+        <button class="btn-move" onclick="moveFile('${file.name}', '${folderName}')">
+          📁 Sposta
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function playAudio(fileName, folderName) {
+  const audioPlayer = document.getElementById('globalAudioPlayer');
+  const audioContainer = document.getElementById('audioPlayer');
+  
+  // Simula caricamento audio (in un'app reale qui caricheresti il file dal server)
+  audioPlayer.src = `#${fileName}`;
+  audioContainer.style.display = 'flex';
+}
+
+function closeAudioPlayer() {
+  const audioPlayer = document.getElementById('globalAudioPlayer');
+  const audioContainer = document.getElementById('audioPlayer');
+  
+  audioPlayer.pause();
+  audioPlayer.src = '';
+  audioContainer.style.display = 'none';
+}
+
+function editFile(fileName, folderName) {
+  alert(`Modifica file: ${fileName} in ${folderName}\n(Questa funzionalità sarà implementata)`);
+}
+
+function moveFile(fileName, folderName) {
+  alert(`Sposta file: ${fileName} da ${folderName}\n(Questa funzionalità sarà implementata)`);
+}
+</script>
+</body>
+</html>
